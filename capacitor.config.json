@@ -1,0 +1,21 @@
+{
+  "appId": "ao.elephantbet.aviatorbot",
+  "appName": "Aviator Bot",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1500,
+      "backgroundColor": "#0a0a0f",
+      "showSpinner": false
+    }
+  }
+}

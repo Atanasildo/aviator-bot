@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#0a0a0f"/>
+  <title>Aviator Bot</title>
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --border: #1e1e2e;
+      --azul: #3b82f6;
+      --rosa: #f472b6;
+      --verde: #22c55e;
+      --amarelo: #facc15;
+      --vermelho: #ef4444;
+      --branco: #e2e8f0;
+      --cinza: #64748b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      font-family: 'Space Mono', monospace;
+    }
+
+    /* ── BARRA DE SINAIS NO TOPO ── */
+    #sinal-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 9999;
+      height: 56px;
+      background: var(--surface);
+      border-bottom: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      gap: 10px;
+      transition: border-color 0.4s, background 0.4s;
+    }
+    #sinal-bar.entrada  { background: #0b2218; border-color: var(--verde); }
+    #sinal-bar.aviso    { background: #221a0b; border-color: var(--amarelo); }
+    #sinal-bar.pausa    { background: #220b0b; border-color: var(--vermelho); }
+
+    #sinal-icone { font-size: 22px; min-width: 28px; text-align: center; }
+
+    #sinal-info { flex: 1; overflow: hidden; }
+    #sinal-label {
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--cinza);
+      text-transform: uppercase;
+      font-family: monospace;
+    }
+    #sinal-msg {
+      font-size: 12px;
+      font-weight: 700;
+      font-family: monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--branco);
+    }
+    #sinal-msg.entrada { color: var(--verde); }
+    #sinal-msg.aviso   { color: var(--amarelo); }
+    #sinal-msg.pausa   { color: var(--vermelho); }
+    #sinal-msg.info    { color: var(--azul); }
+
+    /* Pulse dot */
+    .pdot {
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      background: var(--cinza);
+      flex-shrink: 0;
+    }
+    .pdot.ativo  { background: var(--verde);   animation: pulse 1.4s infinite; }
+    .pdot.aviso  { background: var(--amarelo); animation: pulse 0.9s infinite; }
+    .pdot.pausa  { background: var(--vermelho);animation: pulse 0.5s infinite; }
+    @keyframes pulse {
+      0%,100% { box-shadow: 0 0 0 0 currentColor; }
+      50%      { box-shadow: 0 0 0 5px transparent; }
+    }
+
+    /* Botão config */
+    #btn-cfg {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      color: var(--cinza);
+      font-size: 18px;
+      width: 34px; height: 34px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    /* ── WEBVIEW IFRAME ── */
+    #webview {
+      position: fixed;
+      top: 56px; left: 0; right: 0; bottom: 0;
+      border: none;
+      width: 100%;
+      height: calc(100% - 56px);
+      background: #fff;
+    }
+
+    /* ── PAINEL CONFIG ── */
+    #cfg-panel {
+      display: none;
+      position: fixed;
+      top: 56px; left: 0; right: 0; bottom: 0;
+      background: var(--bg);
+      z-index: 8888;
+      padding: 20px 16px;
+      overflow-y: auto;
+    }
+    #cfg-panel.aberto { display: block; }
+
+    #cfg-panel h2 {
+      font-family: monospace;
+      font-size: 11px;
+      letter-spacing: 3px;
+      color: var(--cinza);
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    .cfg-group { margin-bottom: 20px; }
+    .cfg-group label {
+      display: block;
+      font-size: 11px;
+      color: var(--cinza);
+      margin-bottom: 8px;
+      letter-spacing: 1px;
+    }
+    .cfg-group input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      color: var(--branco);
+      font-family: monospace;
+      font-size: 13px;
+      outline: none;
+    }
+    .cfg-group input:focus { border-color: var(--azul); }
+
+    .cfg-btn {
+      width: 100%;
+      padding: 14px;
+      border-radius: 10px;
+      border: none;
+      font-family: monospace;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+    .cfg-btn.azul   { background: var(--azul); color: #fff; }
+    .cfg-btn.verde  { background: #16a34a; color: #fff; }
+    .cfg-btn.fechar { background: var(--surface); color: var(--cinza); border: 1px solid var(--border); }
+
+    /* Feed de sinais no painel */
+    #feed-cfg { margin-top: 20px; }
+    #feed-cfg h3 {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--cinza);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    #feed-lista { display: flex; flex-direction: column; gap: 8px; }
+    .feed-item {
+      background: var(--surface);
+      border-left: 3px solid var(--cinza);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .feed-item.entrada { border-color: var(--verde); }
+    .feed-item.aviso   { border-color: var(--amarelo); }
+    .feed-item.pausa   { border-color: var(--vermelho); }
+    .feed-item.info    { border-color: var(--azul); }
+    .feed-hora { font-size: 10px; color: var(--cinza); margin-top: 3px; }
+
+    /* Notificação flutuante */
+    #notif {
+      position: fixed;
+      bottom: 20px; left: 16px; right: 16px;
+      background: var(--surface);
+      border: 1px solid var(--verde);
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-family: monospace;
+      font-size: 13px;
+      color: var(--verde);
+      font-weight: 700;
+      z-index: 99999;
+      display: none;
+      animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── BARRA DE SINAIS ── -->
+<div id="sinal-bar">
+  <span id="sinal-icone">📡</span>
+  <div id="sinal-info">
+    <div id="sinal-label">AVIATOR BOT</div>
+    <div id="sinal-msg" class="info">A aguardar servidor...</div>
+  </div>
+  <div class="pdot" id="pdot"></div>
+  <div id="btn-cfg" onclick="toggleCfg()">⚙️</div>
+</div>
+
+<!-- ── SITE ELEPHANTBET ── -->
+<iframe
+  id="webview"
+  src="https://elephantbet.co.ao"
+  sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"
+  allow="fullscreen"
+></iframe>
+
+<!-- ── PAINEL CONFIG ── -->
+<div id="cfg-panel">
+  <h2>⚙️ Configurações</h2>
+
+  <div class="cfg-group">
+    <label>URL DO SERVIDOR DE SINAIS</label>
+    <input type="text" id="srv-url" placeholder="http://SEU-IP:3000" value=""/>
+  </div>
+
+  <button class="cfg-btn azul" onclick="ligar()">📡 Ligar ao Servidor</button>
+  <button class="cfg-btn verde" onclick="abrirSite()">🌍 Recarregar ElephantBet</button>
+  <button class="cfg-btn fechar" onclick="toggleCfg()">✕ Fechar</button>
+
+  <div id="feed-cfg">
+    <h3>Histórico de Sinais</h3>
+    <div id="feed-lista">
+      <div class="feed-item info">
+        <div>📡 Liga ao servidor para receber sinais.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── NOTIFICAÇÃO FLUTUANTE ── -->
+<div id="notif"></div>
+
+<script>
+  let evtSource = null;
+  const SRV_KEY = 'aviator_srv_url';
+
+  // ── Iniciar ──────────────────────────────────────────────
+  window.onload = () => {
+    const saved = localStorage.getItem(SRV_KEY);
+    if (saved) {
+      document.getElementById('srv-url').value = saved;
+      ligar();
+    }
+  };
+
+  // ── Config panel ─────────────────────────────────────────
+  function toggleCfg() {
+    document.getElementById('cfg-panel').classList.toggle('aberto');
+  }
+
+  function abrirSite() {
+    document.getElementById('webview').src = 'https://elephantbet.co.ao';
+    toggleCfg();
+  }
+
+  // ── SSE: Ligar ao servidor ────────────────────────────────
+  function ligar() {
+    const url = document.getElementById('srv-url').value.trim();
+    if (!url) { mostrarMsg('⚠️ Insere o URL do servidor.', 'aviso'); return; }
+
+    localStorage.setItem(SRV_KEY, url);
+    if (evtSource) evtSource.close();
+
+    atualizarBarra({ tipo: 'CONECTANDO', mensagem: '🔄 A ligar...', nivel: 'info' });
+
+    evtSource = new EventSource(`${url}/sinais`);
+
+    evtSource.onopen = () => {
+      atualizarBarra({ tipo: 'CONECTADO', mensagem: '✅ Bot ativo! A monitorizar...', nivel: 'info' });
+      mostrarMsg('✅ Servidor ligado!', 'entrada');
+    };
+
+    evtSource.onmessage = (e) => {
+      const sinal = JSON.parse(e.data);
+      atualizarBarra(sinal);
+      adicionarFeed(sinal);
+      // Notificação flutuante para sinais importantes
+      if (sinal.tipo === 'SINAL_ROSA' || sinal.tipo === 'PADRAO_TEMPO') {
+        mostrarNotif(sinal.mensagem);
+      }
+    };
+
+    evtSource.onerror = () => {
+      atualizarBarra({ tipo: 'ERRO', mensagem: '❌ Sem ligação ao servidor', nivel: 'pausa' });
+    };
+  }
+
+  // ── Atualizar barra de sinais ─────────────────────────────
+  function atualizarBarra(sinal) {
+    const bar  = document.getElementById('sinal-bar');
+    const msg  = document.getElementById('sinal-msg');
+    const dot  = document.getElementById('pdot');
+    const ico  = document.getElementById('sinal-icone');
+
+    const map = {
+      'PAUSA':        { barCls: 'pausa',   icon: '🛑', dotCls: 'pausa', msgCls: 'pausa'   },
+      'AVISO':        { barCls: 'aviso',   icon: '⚠️',  dotCls: 'aviso', msgCls: 'aviso'   },
+      'AGUARDAR':     { barCls: 'aviso',   icon: '⏳',  dotCls: 'aviso', msgCls: 'aviso'   },
+      'SINAL_ROSA':   { barCls: 'entrada', icon: '🌸',  dotCls: 'ativo', msgCls: 'entrada' },
+      'PADRAO_TEMPO': { barCls: 'entrada', icon: '🕐',  dotCls: 'ativo', msgCls: 'entrada' },
+      'CONECTADO':    { barCls: '',        icon: '📡',  dotCls: 'ativo', msgCls: 'info'    },
+      'CONECTANDO':   { barCls: '',        icon: '🔄',  dotCls: '',      msgCls: 'info'    },
+      'ERRO':         { barCls: 'pausa',   icon: '❌',  dotCls: 'pausa', msgCls: 'pausa'   },
+    };
+
+    const m = map[sinal.tipo] || { barCls: '', icon: '📡', dotCls: '', msgCls: 'info' };
+
+    bar.className = m.barCls;
+    ico.textContent = m.icon;
+    msg.className = m.msgCls;
+    msg.textContent = sinal.mensagem;
+    dot.className = 'pdot ' + m.dotCls;
+  }
+
+  // ── Feed histórico ────────────────────────────────────────
+  function adicionarFeed(sinal) {
+    const lista = document.getElementById('feed-lista');
+    const hora  = new Date(sinal.timestamp || Date.now()).toLocaleTimeString('pt-PT');
+    const item  = document.createElement('div');
+    item.className = `feed-item ${sinal.nivel || 'info'}`;
+    item.innerHTML = `<div>${sinal.mensagem}</div><div class="feed-hora">${hora}</div>`;
+    lista.insertBefore(item, lista.firstChild);
+    while (lista.children.length > 30) lista.removeChild(lista.lastChild);
+  }
+
+  // ── Notificação flutuante ─────────────────────────────────
+  function mostrarNotif(texto) {
+    const n = document.getElementById('notif');
+    n.textContent = texto;
+    n.style.display = 'block';
+    setTimeout(() => { n.style.display = 'none'; }, 4000);
+  }
+
+  function mostrarMsg(texto, nivel) {
+    atualizarBarra({ tipo: nivel.toUpperCase(), mensagem: texto, nivel });
+  }
+</script>
+</body>
+</html>
