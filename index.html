@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-  <meta name="theme-color" content="#0a0a0f"/>
   <title>Aviator Bot</title>
   <style>
     :root {
@@ -18,350 +17,200 @@
       --branco: #e2e8f0;
       --cinza: #64748b;
     }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: var(--bg); color: var(--branco); font-family: monospace; overflow: hidden; }
 
-    html, body {
-      height: 100%;
-      width: 100%;
-      overflow: hidden;
-      background: var(--bg);
-      font-family: 'Space Mono', monospace;
-    }
-
-    /* ── BARRA DE SINAIS NO TOPO ── */
-    #sinal-bar {
+    /* ── BARRA TOPO ── */
+    #bar {
       position: fixed;
       top: 0; left: 0; right: 0;
+      height: 58px;
       z-index: 9999;
-      height: 56px;
       background: var(--surface);
       border-bottom: 2px solid var(--border);
       display: flex;
       align-items: center;
-      padding: 0 14px;
+      padding: 0 12px;
       gap: 10px;
-      transition: border-color 0.4s, background 0.4s;
+      transition: background 0.3s, border-color 0.3s;
     }
-    #sinal-bar.entrada  { background: #0b2218; border-color: var(--verde); }
-    #sinal-bar.aviso    { background: #221a0b; border-color: var(--amarelo); }
-    #sinal-bar.pausa    { background: #220b0b; border-color: var(--vermelho); }
+    #bar.entrada  { background: #0b2218; border-color: var(--verde); }
+    #bar.aviso    { background: #221a0b; border-color: var(--amarelo); }
+    #bar.pausa    { background: #220b0b; border-color: var(--vermelho); }
 
-    #sinal-icone { font-size: 22px; min-width: 28px; text-align: center; }
+    #ico { font-size: 22px; min-width: 26px; }
+    #info { flex: 1; overflow: hidden; }
+    #lbl { font-size: 9px; letter-spacing: 2px; color: var(--cinza); text-transform: uppercase; }
+    #msg { font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--branco); }
+    #msg.entrada { color: var(--verde); }
+    #msg.aviso   { color: var(--amarelo); }
+    #msg.pausa   { color: var(--vermelho); }
+    #msg.info    { color: var(--azul); }
 
-    #sinal-info { flex: 1; overflow: hidden; }
-    #sinal-label {
-      font-size: 9px;
-      letter-spacing: 2px;
-      color: var(--cinza);
-      text-transform: uppercase;
-      font-family: monospace;
-    }
-    #sinal-msg {
-      font-size: 12px;
-      font-weight: 700;
-      font-family: monospace;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      color: var(--branco);
-    }
-    #sinal-msg.entrada { color: var(--verde); }
-    #sinal-msg.aviso   { color: var(--amarelo); }
-    #sinal-msg.pausa   { color: var(--vermelho); }
-    #sinal-msg.info    { color: var(--azul); }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--cinza); flex-shrink: 0; }
+    .dot.on    { background: var(--verde);    animation: p 1.4s infinite; }
+    .dot.aviso { background: var(--amarelo);  animation: p 0.9s infinite; }
+    .dot.pausa { background: var(--vermelho); animation: p 0.5s infinite; }
+    @keyframes p { 0%,100%{box-shadow:0 0 0 0 currentColor}50%{box-shadow:0 0 0 5px transparent} }
 
-    /* Pulse dot */
-    .pdot {
-      width: 9px; height: 9px;
-      border-radius: 50%;
-      background: var(--cinza);
-      flex-shrink: 0;
-    }
-    .pdot.ativo  { background: var(--verde);   animation: pulse 1.4s infinite; }
-    .pdot.aviso  { background: var(--amarelo); animation: pulse 0.9s infinite; }
-    .pdot.pausa  { background: var(--vermelho);animation: pulse 0.5s infinite; }
-    @keyframes pulse {
-      0%,100% { box-shadow: 0 0 0 0 currentColor; }
-      50%      { box-shadow: 0 0 0 5px transparent; }
-    }
+    #bcfg { background: none; border: 1px solid var(--border); border-radius: 7px; color: var(--cinza); font-size: 18px; width: 34px; height: 34px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
 
-    /* Botão config */
-    #btn-cfg {
-      background: none;
-      border: 1px solid var(--border);
-      border-radius: 7px;
-      color: var(--cinza);
-      font-size: 18px;
-      width: 34px; height: 34px;
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer;
-      flex-shrink: 0;
-    }
-
-    /* ── WEBVIEW IFRAME ── */
-    #webview {
+    /* ── WEBVIEW via capacitor ── */
+    #wv {
       position: fixed;
-      top: 56px; left: 0; right: 0; bottom: 0;
+      top: 58px; left: 0; right: 0; bottom: 0;
+      width: 100%; height: calc(100% - 58px);
       border: none;
-      width: 100%;
-      height: calc(100% - 56px);
       background: #fff;
     }
 
     /* ── PAINEL CONFIG ── */
-    #cfg-panel {
+    #cfg {
       display: none;
       position: fixed;
-      top: 56px; left: 0; right: 0; bottom: 0;
+      top: 58px; left: 0; right: 0; bottom: 0;
       background: var(--bg);
       z-index: 8888;
       padding: 20px 16px;
       overflow-y: auto;
     }
-    #cfg-panel.aberto { display: block; }
+    #cfg.open { display: block; }
+    #cfg h2 { font-size: 10px; letter-spacing: 3px; color: var(--cinza); text-transform: uppercase; margin-bottom: 18px; }
+    .grp { margin-bottom: 16px; }
+    .grp label { display:block; font-size:11px; color:var(--cinza); margin-bottom:6px; }
+    .grp input { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:12px 14px; color:var(--branco); font-family:monospace; font-size:13px; outline:none; }
+    .grp input:focus { border-color: var(--azul); }
+    .btn { width:100%; padding:14px; border-radius:10px; border:none; font-family:monospace; font-size:13px; font-weight:700; cursor:pointer; margin-bottom:10px; }
+    .btn.b { background: var(--azul); color:#fff; }
+    .btn.g { background: #16a34a; color:#fff; }
+    .btn.f { background: var(--surface); color:var(--cinza); border:1px solid var(--border); }
 
-    #cfg-panel h2 {
-      font-family: monospace;
-      font-size: 11px;
-      letter-spacing: 3px;
-      color: var(--cinza);
-      text-transform: uppercase;
-      margin-bottom: 20px;
-    }
+    #feed-tit { font-size:10px; letter-spacing:2px; color:var(--cinza); text-transform:uppercase; margin: 16px 0 10px; }
+    #feed { display:flex; flex-direction:column; gap:8px; }
+    .fi { background:var(--surface); border-left:3px solid var(--cinza); border-radius:8px; padding:10px 12px; font-size:12px; line-height:1.5; }
+    .fi.entrada { border-color: var(--verde); }
+    .fi.aviso   { border-color: var(--amarelo); }
+    .fi.pausa   { border-color: var(--vermelho); }
+    .fi.info    { border-color: var(--azul); }
+    .fh { font-size:10px; color:var(--cinza); margin-top:3px; }
 
-    .cfg-group { margin-bottom: 20px; }
-    .cfg-group label {
-      display: block;
-      font-size: 11px;
-      color: var(--cinza);
-      margin-bottom: 8px;
-      letter-spacing: 1px;
-    }
-    .cfg-group input {
-      width: 100%;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 12px 14px;
-      color: var(--branco);
-      font-family: monospace;
-      font-size: 13px;
-      outline: none;
-    }
-    .cfg-group input:focus { border-color: var(--azul); }
-
-    .cfg-btn {
-      width: 100%;
-      padding: 14px;
-      border-radius: 10px;
-      border: none;
-      font-family: monospace;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-      margin-bottom: 10px;
-    }
-    .cfg-btn.azul   { background: var(--azul); color: #fff; }
-    .cfg-btn.verde  { background: #16a34a; color: #fff; }
-    .cfg-btn.fechar { background: var(--surface); color: var(--cinza); border: 1px solid var(--border); }
-
-    /* Feed de sinais no painel */
-    #feed-cfg { margin-top: 20px; }
-    #feed-cfg h3 {
-      font-size: 10px;
-      letter-spacing: 2px;
-      color: var(--cinza);
-      text-transform: uppercase;
-      margin-bottom: 10px;
-    }
-    #feed-lista { display: flex; flex-direction: column; gap: 8px; }
-    .feed-item {
-      background: var(--surface);
-      border-left: 3px solid var(--cinza);
-      border-radius: 8px;
-      padding: 10px 12px;
-      font-size: 12px;
-      line-height: 1.5;
-    }
-    .feed-item.entrada { border-color: var(--verde); }
-    .feed-item.aviso   { border-color: var(--amarelo); }
-    .feed-item.pausa   { border-color: var(--vermelho); }
-    .feed-item.info    { border-color: var(--azul); }
-    .feed-hora { font-size: 10px; color: var(--cinza); margin-top: 3px; }
-
-    /* Notificação flutuante */
-    #notif {
-      position: fixed;
-      bottom: 20px; left: 16px; right: 16px;
-      background: var(--surface);
-      border: 1px solid var(--verde);
-      border-radius: 12px;
-      padding: 14px 16px;
-      font-family: monospace;
-      font-size: 13px;
-      color: var(--verde);
-      font-weight: 700;
-      z-index: 99999;
-      display: none;
-      animation: slideUp 0.3s ease;
-    }
-    @keyframes slideUp {
-      from { transform: translateY(20px); opacity: 0; }
-      to   { transform: translateY(0);    opacity: 1; }
-    }
+    /* Notif flutuante */
+    #notif { position:fixed; bottom:20px; left:16px; right:16px; background:var(--surface); border:1px solid var(--verde); border-radius:12px; padding:14px 16px; font-family:monospace; font-size:13px; color:var(--verde); font-weight:700; z-index:99999; display:none; }
   </style>
 </head>
 <body>
 
-<!-- ── BARRA DE SINAIS ── -->
-<div id="sinal-bar">
-  <span id="sinal-icone">📡</span>
-  <div id="sinal-info">
-    <div id="sinal-label">AVIATOR BOT</div>
-    <div id="sinal-msg" class="info">A aguardar servidor...</div>
+<div id="bar">
+  <span id="ico">📡</span>
+  <div id="info">
+    <div id="lbl">AVIATOR BOT</div>
+    <div id="msg" class="info">A aguardar servidor...</div>
   </div>
-  <div class="pdot" id="pdot"></div>
-  <div id="btn-cfg" onclick="toggleCfg()">⚙️</div>
+  <div class="dot" id="dot"></div>
+  <div id="bcfg" onclick="toggleCfg()">⚙️</div>
 </div>
 
-<!-- ── SITE ELEPHANTBET ── -->
-<iframe
-  id="webview"
-  src="https://elephantbet.co.ao"
-  sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"
-  allow="fullscreen"
-></iframe>
+<!-- WebView nativa via Capacitor — carrega o ElephantBet -->
+<iframe id="wv" src="about:blank"></iframe>
 
-<!-- ── PAINEL CONFIG ── -->
-<div id="cfg-panel">
+<div id="cfg">
   <h2>⚙️ Configurações</h2>
-
-  <div class="cfg-group">
+  <div class="grp">
     <label>URL DO SERVIDOR DE SINAIS</label>
-    <input type="text" id="srv-url" placeholder="http://SEU-IP:3000" value=""/>
+    <input type="text" id="srv" placeholder="http://SEU-IP:3000"/>
   </div>
-
-  <button class="cfg-btn azul" onclick="ligar()">📡 Ligar ao Servidor</button>
-  <button class="cfg-btn verde" onclick="abrirSite()">🌍 Recarregar ElephantBet</button>
-  <button class="cfg-btn fechar" onclick="toggleCfg()">✕ Fechar</button>
-
-  <div id="feed-cfg">
-    <h3>Histórico de Sinais</h3>
-    <div id="feed-lista">
-      <div class="feed-item info">
-        <div>📡 Liga ao servidor para receber sinais.</div>
-      </div>
-    </div>
+  <button class="btn b" onclick="ligar()">📡 Ligar ao Servidor</button>
+  <button class="btn g" onclick="abrirSite()">🌍 Abrir ElephantBet</button>
+  <button class="btn f" onclick="toggleCfg()">✕ Fechar</button>
+  <div id="feed-tit">HISTÓRICO DE SINAIS</div>
+  <div id="feed">
+    <div class="fi info"><div>📡 Liga ao servidor para receber sinais.</div></div>
   </div>
 </div>
 
-<!-- ── NOTIFICAÇÃO FLUTUANTE ── -->
 <div id="notif"></div>
 
 <script>
+  // Usar Capacitor Browser para abrir o site nativamente
+  // sem bloqueio de iframe
   let evtSource = null;
-  const SRV_KEY = 'aviator_srv_url';
+  const KEY = 'aviator_srv';
 
-  // ── Iniciar ──────────────────────────────────────────────
-  window.onload = () => {
-    const saved = localStorage.getItem(SRV_KEY);
-    if (saved) {
-      document.getElementById('srv-url').value = saved;
-      ligar();
-    }
+  window.onload = async () => {
+    // Tentar abrir com Capacitor Browser plugin
+    await abrirSite();
+    const saved = localStorage.getItem(KEY);
+    if (saved) { document.getElementById('srv').value = saved; ligar(); }
   };
 
-  // ── Config panel ─────────────────────────────────────────
-  function toggleCfg() {
-    document.getElementById('cfg-panel').classList.toggle('aberto');
-  }
-
-  function abrirSite() {
-    document.getElementById('webview').src = 'https://elephantbet.co.ao';
-    toggleCfg();
-  }
-
-  // ── SSE: Ligar ao servidor ────────────────────────────────
-  function ligar() {
-    const url = document.getElementById('srv-url').value.trim();
-    if (!url) { mostrarMsg('⚠️ Insere o URL do servidor.', 'aviso'); return; }
-
-    localStorage.setItem(SRV_KEY, url);
-    if (evtSource) evtSource.close();
-
-    atualizarBarra({ tipo: 'CONECTANDO', mensagem: '🔄 A ligar...', nivel: 'info' });
-
-    evtSource = new EventSource(`${url}/sinais`);
-
-    evtSource.onopen = () => {
-      atualizarBarra({ tipo: 'CONECTADO', mensagem: '✅ Bot ativo! A monitorizar...', nivel: 'info' });
-      mostrarMsg('✅ Servidor ligado!', 'entrada');
-    };
-
-    evtSource.onmessage = (e) => {
-      const sinal = JSON.parse(e.data);
-      atualizarBarra(sinal);
-      adicionarFeed(sinal);
-      // Notificação flutuante para sinais importantes
-      if (sinal.tipo === 'SINAL_ROSA' || sinal.tipo === 'PADRAO_TEMPO') {
-        mostrarNotif(sinal.mensagem);
+  async function abrirSite() {
+    try {
+      // Tentar Capacitor InAppBrowser
+      const { Browser } = Capacitor.Plugins;
+      if (Browser) {
+        await Browser.open({ url: 'https://elephantbet.co.ao', presentationStyle: 'fullscreen' });
+        return;
       }
-    };
-
-    evtSource.onerror = () => {
-      atualizarBarra({ tipo: 'ERRO', mensagem: '❌ Sem ligação ao servidor', nivel: 'pausa' });
-    };
+    } catch(e) {}
+    // Fallback: abrir no browser nativo
+    window.open('https://elephantbet.co.ao', '_system');
   }
 
-  // ── Atualizar barra de sinais ─────────────────────────────
-  function atualizarBarra(sinal) {
-    const bar  = document.getElementById('sinal-bar');
-    const msg  = document.getElementById('sinal-msg');
-    const dot  = document.getElementById('pdot');
-    const ico  = document.getElementById('sinal-icone');
+  function toggleCfg() {
+    document.getElementById('cfg').classList.toggle('open');
+  }
 
-    const map = {
-      'PAUSA':        { barCls: 'pausa',   icon: '🛑', dotCls: 'pausa', msgCls: 'pausa'   },
-      'AVISO':        { barCls: 'aviso',   icon: '⚠️',  dotCls: 'aviso', msgCls: 'aviso'   },
-      'AGUARDAR':     { barCls: 'aviso',   icon: '⏳',  dotCls: 'aviso', msgCls: 'aviso'   },
-      'SINAL_ROSA':   { barCls: 'entrada', icon: '🌸',  dotCls: 'ativo', msgCls: 'entrada' },
-      'PADRAO_TEMPO': { barCls: 'entrada', icon: '🕐',  dotCls: 'ativo', msgCls: 'entrada' },
-      'CONECTADO':    { barCls: '',        icon: '📡',  dotCls: 'ativo', msgCls: 'info'    },
-      'CONECTANDO':   { barCls: '',        icon: '🔄',  dotCls: '',      msgCls: 'info'    },
-      'ERRO':         { barCls: 'pausa',   icon: '❌',  dotCls: 'pausa', msgCls: 'pausa'   },
+  function ligar() {
+    const url = document.getElementById('srv').value.trim();
+    if (!url) { setBarra('AVISO','⚠️ Insere o URL.','aviso'); return; }
+    localStorage.setItem(KEY, url);
+    if (evtSource) evtSource.close();
+    setBarra('INFO','🔄 A ligar...','info');
+    evtSource = new EventSource(`${url}/sinais`);
+    evtSource.onopen = () => { setBarra('CONECTADO','✅ Bot ativo!','info'); addFeed({mensagem:'✅ Servidor ligado!',nivel:'entrada'}); };
+    evtSource.onmessage = (e) => {
+      const s = JSON.parse(e.data);
+      setBarra(s.tipo, s.mensagem, s.nivel);
+      addFeed(s);
+      if (s.tipo==='SINAL_ROSA'||s.tipo==='PADRAO_TEMPO') notif(s.mensagem);
     };
-
-    const m = map[sinal.tipo] || { barCls: '', icon: '📡', dotCls: '', msgCls: 'info' };
-
-    bar.className = m.barCls;
-    ico.textContent = m.icon;
-    msg.className = m.msgCls;
-    msg.textContent = sinal.mensagem;
-    dot.className = 'pdot ' + m.dotCls;
+    evtSource.onerror = () => setBarra('ERRO','❌ Sem ligação','pausa');
   }
 
-  // ── Feed histórico ────────────────────────────────────────
-  function adicionarFeed(sinal) {
-    const lista = document.getElementById('feed-lista');
-    const hora  = new Date(sinal.timestamp || Date.now()).toLocaleTimeString('pt-PT');
-    const item  = document.createElement('div');
-    item.className = `feed-item ${sinal.nivel || 'info'}`;
-    item.innerHTML = `<div>${sinal.mensagem}</div><div class="feed-hora">${hora}</div>`;
-    lista.insertBefore(item, lista.firstChild);
-    while (lista.children.length > 30) lista.removeChild(lista.lastChild);
+  const MAP = {
+    'PAUSA':        {b:'pausa',  i:'🛑', d:'pausa', m:'pausa'},
+    'AVISO':        {b:'aviso',  i:'⚠️', d:'aviso', m:'aviso'},
+    'AGUARDAR':     {b:'aviso',  i:'⏳', d:'aviso', m:'aviso'},
+    'SINAL_ROSA':   {b:'entrada',i:'🌸', d:'on',    m:'entrada'},
+    'PADRAO_TEMPO': {b:'entrada',i:'🕐', d:'on',    m:'entrada'},
+    'CONECTADO':    {b:'',       i:'📡', d:'on',    m:'info'},
+    'INFO':         {b:'',       i:'📡', d:'',      m:'info'},
+    'ERRO':         {b:'pausa',  i:'❌', d:'pausa', m:'pausa'},
+  };
+
+  function setBarra(tipo, texto, nivel) {
+    const m = MAP[tipo] || {b:'',i:'📡',d:'',m:'info'};
+    document.getElementById('bar').className = m.b;
+    document.getElementById('ico').textContent = m.i;
+    const el = document.getElementById('msg');
+    el.className = m.m; el.textContent = texto;
+    document.getElementById('dot').className = 'dot ' + m.d;
   }
 
-  // ── Notificação flutuante ─────────────────────────────────
-  function mostrarNotif(texto) {
+  function addFeed(s) {
+    const f = document.getElementById('feed');
+    const h = new Date(s.timestamp||Date.now()).toLocaleTimeString('pt-PT');
+    const d = document.createElement('div');
+    d.className = `fi ${s.nivel||'info'}`;
+    d.innerHTML = `<div>${s.mensagem}</div><div class="fh">${h}</div>`;
+    f.insertBefore(d, f.firstChild);
+    while(f.children.length>30) f.removeChild(f.lastChild);
+  }
+
+  function notif(t) {
     const n = document.getElementById('notif');
-    n.textContent = texto;
-    n.style.display = 'block';
-    setTimeout(() => { n.style.display = 'none'; }, 4000);
-  }
-
-  function mostrarMsg(texto, nivel) {
-    atualizarBarra({ tipo: nivel.toUpperCase(), mensagem: texto, nivel });
+    n.textContent = t; n.style.display='block';
+    setTimeout(()=>n.style.display='none', 4000);
   }
 </script>
 </body>
